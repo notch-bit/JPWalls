@@ -3,22 +3,23 @@ name: Build APK
 on:
   push:
     branches: [main, master]
-  workflow_dispatch:   # lets you run it manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # Android SDK is preinstalled on GitHub runners; just accept licenses
+      - name: Accept Android licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
-      # The project has no gradle wrapper, so install a Gradle that works with AGP 8.5.2
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
