@@ -2,6 +2,7 @@ package com.jpwalls;
 
 import android.app.Activity;
 import android.app.WallpaperManager;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -12,6 +13,8 @@ import android.provider.MediaStore;
 import android.util.Base64;
 import android.webkit.*;
 import android.widget.Toast;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -75,6 +78,33 @@ public class MainActivity extends Activity {
                 }
                 toast("Saved to Pictures/JPWalls");
             } catch (Exception e) { toast("Save failed"); }
+        }
+
+        private void writeData(String d, File f) throws IOException {
+            byte[] b = Base64.decode(d.substring(d.indexOf(',') + 1), Base64.DEFAULT);
+            try (FileOutputStream o = new FileOutputStream(f)) { o.write(b); }
+        }
+
+        // Saves the layers + clock settings, then opens the system live-wallpaper preview.
+        @JavascriptInterface public void setLiveWallpaper(String bg, String fg, String cfg) {
+            try {
+                File dir = getFilesDir();
+                writeData(bg, new File(dir, LiveWallpaperService.BG));
+                File ff = new File(dir, LiveWallpaperService.FG);
+                if (fg != null && fg.length() > 0) writeData(fg, ff); else ff.delete();
+                try (FileOutputStream o = new FileOutputStream(new File(dir, LiveWallpaperService.CFG))) {
+                    o.write(cfg.getBytes("UTF-8"));
+                }
+            } catch (Exception e) { toast("Could not save live wallpaper"); return; }
+            try {
+                Intent i = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
+                i.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+                        new ComponentName(MainActivity.this, LiveWallpaperService.class));
+                startActivity(i);
+            } catch (Exception e) {
+                try { startActivity(new Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER)); }
+                catch (Exception e2) { toast("Live wallpapers are not supported on this device"); }
+            }
         }
 
         // flag: 1 = home screen, 2 = lock screen, 3 = both

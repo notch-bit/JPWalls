@@ -71,7 +71,7 @@ input[type=file]{display:none}
 <div class="stage"><canvas id="c" width="1080" height="2400"></canvas></div>
 </div>
 <div id="welcome"><div class="box"><h3>Welcome to JPWalls</h3><p>Use the app <b>PHOTOLAYERS</b> to separate background and upper image.</p><button class="pri" id="wok">Got it</button></div></div>
-<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row" id="ab" style="display:none"><button id="sv">Save to gallery</button><button id="sl" class="pri">Set lock screen</button><button id="sh">Set home screen</button><button id="sb" class="pri" style="flex-basis:100%">Add to both home &amp; lock screen</button></div><button id="close">Close</button></div>
+<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row" id="ab" style="display:none"><button id="sv">Save to gallery</button><button id="sl" class="pri">Set lock screen</button><button id="sh">Set home screen</button><button id="sb" class="pri" style="flex-basis:100%">Add to both home &amp; lock screen</button><button id="lv" class="pri" style="flex-basis:100%">Set as live wallpaper (auto time &amp; date)</button></div><button id="close">Close</button></div>
 <script>
 const W=1080,H=2400,$=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
@@ -177,7 +177,12 @@ $('exp').onclick=()=>{render();$('out').src=cv.toDataURL('image/png');$('modal')
 $('close').onclick=()=>$('modal').style.display='none';
 if(window.Android){$('ab').style.display='flex';$('modal').querySelector('p').style.display='none';
  const jp=()=>cv.toDataURL('image/jpeg',.95);
- $('sv').onclick=()=>Android.saveImage(jp());$('sl').onclick=()=>Android.setWallpaper(jp(),2);$('sh').onclick=()=>Android.setWallpaper(jp(),1);$('sb').onclick=()=>Android.setWallpaper(jp(),3)}
+ $('sv').onclick=()=>Android.saveImage(jp());$('sl').onclick=()=>Android.setWallpaper(jp(),2);$('sh').onclick=()=>Android.setWallpaper(jp(),1);$('sb').onclick=()=>Android.setWallpaper(jp(),3);
+ $('lv').onclick=()=>{
+  const bc=mk(),bx=bc.getContext('2d');if(L.bg.img)drawLayer(bx,'bg');else drawDefault(bx);
+  let f='';if(L.fg.img){const t=mk(),tc=t.getContext('2d');drawLayer(tc,'fg');tc.globalCompositeOperation='destination-out';tc.filter=`blur(${$('feather').value}px)`;tc.drawImage(hole,0,0);f=t.toDataURL('image/png')}
+  const cfg={style,size:+$('size').value,ypos:+$('ypos').value,wt:+$('wt').value,col:$('col').value,col2:$('col2').value,op:+$('op').value,atmoOn:$('atmoOn').checked,atmo:+$('atmo').value};
+  Android.setLiveWallpaper(bc.toDataURL('image/jpeg',.92),f,JSON.stringify(cfg))}}
 try{if(!localStorage.getItem('jpw_seen'))$('welcome').style.display='flex'}catch(e){$('welcome').style.display='flex'}
 $('wok').onclick=()=>{$('welcome').style.display='none';try{localStorage.setItem('jpw_seen','1')}catch(e){}};
 render();
