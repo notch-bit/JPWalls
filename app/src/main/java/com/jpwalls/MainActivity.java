@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         setContentView(web);
         web.getSettings().setJavaScriptEnabled(true);
+        web.getSettings().setDomStorageEnabled(true);
         web.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
                 if ("/index.html".equals(r.getUrl().getPath())) {
@@ -76,7 +77,7 @@ public class MainActivity extends Activity {
             } catch (Exception e) { toast("Save failed"); }
         }
 
-        // flag: 1 = home screen, 2 = lock screen
+        // flag: 1 = home screen, 2 = lock screen, 3 = both
         @JavascriptInterface public void setWallpaper(String d, int flag) {
             try {
                 WallpaperManager.getInstance(MainActivity.this).setBitmap(bmp(d), null, true, flag);

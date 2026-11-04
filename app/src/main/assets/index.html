@@ -10,6 +10,7 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .wrap{max-width:960px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(max-width:759px){.stage{order:-1}}
 @media(min-width:760px){.wrap{grid-template-columns:340px minmax(0,1fr)}.stage{order:2;position:sticky;top:16px;align-self:start}}
 h1{font-size:20px;margin:0 0 2px}h2{font-size:13px;margin:0;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}
 p.s{margin:0;color:var(--mu);font-size:13px}
@@ -31,6 +32,9 @@ input[type=file]{display:none}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:16px;z-index:5}
 #modal img{max-height:78vh;max-width:100%;border-radius:12px}
 #modal p{color:#fff;text-align:center;margin:0}
+#welcome{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+#welcome .box{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:20px;max-width:340px;display:grid;gap:14px;text-align:center}
+#welcome h3{margin:0;font-size:18px}#welcome p{margin:0}
 </style></head><body>
 <div class="wrap">
 <div class="card" style="align-content:start">
@@ -42,8 +46,8 @@ input[type=file]{display:none}
  </div>
  <div class="tip">For the foreground, use a PNG with a transparent background (a cutout of a person or object). If it isn’t transparent, use Erase to wipe away what you don’t want.</div>
  <h2>2. Position</h2>
- <div class="grid" id="modes">
-  <button data-m="bg" class="on">Move BG</button><button data-m="fg">Move FG</button><button data-m="erase">Erase FG</button>
+ <div class="grid" id="modes" style="grid-template-columns:repeat(2,1fr)">
+  <button data-m="bg" class="on">Move BG</button><button data-m="erase">Erase FG</button>
  </div>
  <button id="restore">Restore FG (brush back)</button>
  <label>Background zoom<input type="range" id="zb" min="1" max="3" step="0.01" value="1"></label>
@@ -66,7 +70,8 @@ input[type=file]{display:none}
 </div>
 <div class="stage"><canvas id="c" width="1080" height="2400"></canvas></div>
 </div>
-<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row" id="ab" style="display:none"><button id="sv">Save to gallery</button><button id="sl" class="pri">Set lock screen</button><button id="sh">Set home screen</button></div><button id="close">Close</button></div>
+<div id="welcome"><div class="box"><h3>Welcome to JPWalls</h3><p>Use the app <b>PHOTOLAYERS</b> to separate background and upper image.</p><button class="pri" id="wok">Got it</button></div></div>
+<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row" id="ab" style="display:none"><button id="sv">Save to gallery</button><button id="sl" class="pri">Set lock screen</button><button id="sh">Set home screen</button><button id="sb" class="pri" style="flex-basis:100%">Add to both home &amp; lock screen</button></div><button id="close">Close</button></div>
 <script>
 const W=1080,H=2400,$=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
@@ -154,14 +159,14 @@ function stroke(a,b){
 }
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);last=pos(e);if(mode==='erase'||mode==='restore'){stroke(last,last);render()}});
 cv.addEventListener('pointermove',e=>{if(!last)return;const p=pos(e);
-  if(mode==='bg'||mode==='fg'){const l=L[mode];l.cx+=p.x-last.x;l.cy+=p.y-last.y}else stroke(last,p);
+  if(mode==='bg'){const l=L.bg;l.cx+=p.x-last.x;l.cy+=p.y-last.y}else stroke(last,p);
   last=p;render()});
 ['pointerup','pointercancel'].forEach(n=>cv.addEventListener(n,()=>last=null));
 const setMode=m=>{mode=m;document.querySelectorAll('#modes button').forEach(x=>x.classList.toggle('on',x.dataset.m===m));$('restore').classList.toggle('on',m==='restore')};
 document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 $('restore').onclick=()=>setMode('restore');
 function load(k,id){$(id).onchange=e=>{const f=e.target.files[0];if(!f)return;const i=new Image();
-  i.onload=()=>{L[k].img=i;L[k].cx=W/2;L[k].cy=H/2;if(k==='fg'){hctx.clearRect(0,0,W,H);setMode('fg')}render()};i.src=URL.createObjectURL(f)}}
+  i.onload=()=>{L[k].img=i;L[k].cx=W/2;L[k].cy=H/2;if(k==='fg'){hctx.clearRect(0,0,W,H);setMode('erase')}render()};i.src=URL.createObjectURL(f)}}
 load('bg','fb');load('fg','ff');
 $('styles').innerHTML=Object.keys(STYLES).map(k=>`<button data-s="${k}" class="${k===style?'on':''}">${STYLES[k].n}</button>`).join('');
 document.querySelectorAll('#styles button').forEach(b=>b.onclick=()=>{style=b.dataset.s;document.querySelectorAll('#styles button').forEach(x=>x.classList.toggle('on',x===b));render()});
@@ -172,6 +177,8 @@ $('exp').onclick=()=>{render();$('out').src=cv.toDataURL('image/png');$('modal')
 $('close').onclick=()=>$('modal').style.display='none';
 if(window.Android){$('ab').style.display='flex';$('modal').querySelector('p').style.display='none';
  const jp=()=>cv.toDataURL('image/jpeg',.95);
- $('sv').onclick=()=>Android.saveImage(jp());$('sl').onclick=()=>Android.setWallpaper(jp(),2);$('sh').onclick=()=>Android.setWallpaper(jp(),1)}
+ $('sv').onclick=()=>Android.saveImage(jp());$('sl').onclick=()=>Android.setWallpaper(jp(),2);$('sh').onclick=()=>Android.setWallpaper(jp(),1);$('sb').onclick=()=>Android.setWallpaper(jp(),3)}
+try{if(!localStorage.getItem('jpw_seen'))$('welcome').style.display='flex'}catch(e){$('welcome').style.display='flex'}
+$('wok').onclick=()=>{$('welcome').style.display='none';try{localStorage.setItem('jpw_seen','1')}catch(e){}};
 render();
 </script></body></html>
