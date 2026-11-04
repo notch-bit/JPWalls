@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JPWalls</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f4f6;--card:#fff;--tx:#15151a;--mu:#6b6b76;--ac:#5b5bf0;--bd:#e2e2e8}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e0e12;--card:#1a1a21;--tx:#f2f2f6;--mu:#9a9aa6;--ac:#7c7cff;--bd:#2a2a33}}
+:root[data-theme="dark"]{--bg:#0e0e12;--card:#1a1a21;--tx:#f2f2f6;--mu:#9a9aa6;--ac:#7c7cff;--bd:#2a2a33}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:760px){.wrap{grid-template-columns:340px minmax(0,1fr)}.stage{order:2;position:sticky;top:16px;align-self:start}}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:13px;margin:0;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}
+p.s{margin:0;color:var(--mu);font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;display:grid;gap:12px}
+.stage{display:flex;justify-content:center}
+canvas{width:min(100%,320px);aspect-ratio:9/20;border-radius:28px;background:#000;touch-action:none;border:1px solid var(--bd);display:block}
+label{display:grid;gap:4px;font-size:12px;color:var(--mu)}
+input[type=range]{width:100%;accent-color:var(--ac)}
+input[type=text]{padding:8px 10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit}
+input[type=color]{width:100%;height:34px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);padding:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 90px}
+button,.btn{appearance:none;border:1px solid var(--bd);background:var(--bg);color:var(--tx);padding:9px 10px;border-radius:10px;font:inherit;cursor:pointer;text-align:center}
+button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+button.pri{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}
+input[type=file]{display:none}
+.tip{font-size:12px;color:var(--mu)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:16px;z-index:5}
+#modal img{max-height:78vh;max-width:100%;border-radius:12px}
+#modal p{color:#fff;text-align:center;margin:0}
+</style></head><body>
+<div class="wrap">
+<div class="card" style="align-content:start">
+ <div><h1>JPWalls</h1><p class="s">Background → clock → foreground.</p></div>
+ <h2>1. Photos</h2>
+ <div class="row">
+  <label class="btn" for="fb">Background photo<br><small>goes behind the clock</small></label><input id="fb" type="file" accept="image/*">
+  <label class="btn" for="ff">Foreground photo<br><small>goes above the clock</small></label><input id="ff" type="file" accept="image/*">
+ </div>
+ <div class="tip">For the foreground, use a PNG with a transparent background (a cutout of a person or object). If it isn’t transparent, use Erase to wipe away what you don’t want.</div>
+ <h2>2. Position</h2>
+ <div class="grid" id="modes">
+  <button data-m="bg" class="on">Move BG</button><button data-m="fg">Move FG</button><button data-m="erase">Erase FG</button>
+ </div>
+ <button id="restore">Restore FG (brush back)</button>
+ <label>Background zoom<input type="range" id="zb" min="1" max="3" step="0.01" value="1"></label>
+ <label>Foreground zoom<input type="range" id="zf" min="0.3" max="3" step="0.01" value="1"></label>
+ <label>Brush size<input type="range" id="brush" min="8" max="160" value="50"></label>
+ <label>Brush edge feather<input type="range" id="feather" min="0" max="12" value="2"></label>
+ <h2>3. Clock style</h2>
+ <div class="grid" id="styles"></div>
+ <div class="row"><label>Time<input type="text" id="time" value="9:41"></label><label>&nbsp;<button id="now">Use current time</button></label></div>
+ <label>Date<input type="text" id="date" value="Wednesday, 4 November"></label>
+ <label>Size<input type="range" id="size" min="160" max="700" value="440"></label>
+ <label>Vertical position<input type="range" id="ypos" min="12" max="80" value="26"></label>
+ <label>Weight<input type="range" id="wt" min="100" max="900" step="100" value="600"></label>
+ <div class="row"><label>Colour<input type="color" id="col" value="#ffffff"></label><label>Second colour<input type="color" id="col2" value="#ff7ad9"></label></div>
+ <label>Clock opacity<input type="range" id="op" min="0.2" max="1" step="0.05" value="0.95"></label>
+ <h2>4. Atmosphere</h2>
+ <label><span><input type="checkbox" id="atmoOn" checked> Atmospheric depth on clock</span></label>
+ <label>Haze &amp; glow intensity<input type="range" id="atmo" min="0" max="100" value="60"></label>
+ <button class="pri" id="exp">Export wallpaper</button>
+</div>
+<div class="stage"><canvas id="c" width="1080" height="2400"></canvas></div>
+</div>
+<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row" id="ab" style="display:none"><button id="sv">Save to gallery</button><button id="sl" class="pri">Set lock screen</button><button id="sh">Set home screen</button></div><button id="close">Close</button></div>
+<script>
+const W=1080,H=2400,$=id=>document.getElementById(id);
+const cv=$('c'),ctx=cv.getContext('2d');
+const mk=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c};
+const hole=mk(),hctx=hole.getContext('2d'),tmp=mk(),tctx=tmp.getContext('2d');
+const L={bg:{img:null,cx:W/2,cy:H/2},fg:{img:null,cx:W/2,cy:H/2}};
+let mode='bg',last=null,style='ios';
+const SANS='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',SERIF='Georgia,"Times New Roman",serif',MONO='ui-monospace,Menlo,Consolas,monospace';
+
+function layerBox(k){
+  const l=L[k],z=parseFloat($(k==='bg'?'zb':'zf').value),s=Math.max(W/l.img.width,H/l.img.height)*z;
+  return{w:l.img.width*s,h:l.img.height*s};
+}
+function drawLayer(c,k){
+  const l=L[k];if(!l.img)return;
+  const b=layerBox(k);
+  if(k==='bg'){
+    if(b.w>=W)l.cx=Math.min(b.w/2,Math.max(W-b.w/2,l.cx));
+    if(b.h>=H)l.cy=Math.min(b.h/2,Math.max(H-b.h/2,l.cy));
+  }
+  c.drawImage(l.img,l.cx-b.w/2,l.cy-b.h/2,b.w,b.h);
+}
+/* clock */
+function T(c,s,x,y,font,al='center'){c.font=font;c.textAlign=al;c.textBaseline='alphabetic';c.fillText(s,x,y)}
+function parts(){
+  const m=$('time').value.match(/(\d+)\D+(\d+)/)||['','9','41'];
+  return{h:parseInt(m[1]),m:parseInt(m[2]),hh:String(parseInt(m[1])).padStart(2,'0'),mm:String(parseInt(m[2])).padStart(2,'0')};
+}
+const STYLES={
+ ios:{n:'iPhone',f(c,o){T(c,o.date,W/2,o.y-o.sz*.62,`500 64px ${SANS}`);T(c,o.time,W/2,o.y+o.sz*.28,`${o.wt} ${o.sz}px ${SANS}`)}},
+ oneui:{n:'One UI',f(c,o){const p=parts(),s=o.sz*.9;T(c,o.date,W/2,o.y-s*.75,`400 58px ${SANS}`);T(c,p.hh,W/2,o.y+s*.12,`300 ${s}px ${SANS}`);T(c,p.mm,W/2,o.y+s*1.08,`300 ${s}px ${SANS}`)}},
+ stack:{n:'Bold stack',f(c,o){const p=parts(),s=o.sz;T(c,o.date.toUpperCase(),W/2,o.y-s*.78,`600 54px ${SANS}`);T(c,p.hh,W/2,o.y+s*.02,`900 ${s}px ${SANS}`);T(c,p.mm,W/2,o.y+s*.84,`900 ${s}px ${SANS}`)}},
+ outline:{n:'Outline',f(c,o){c.strokeStyle=c.fillStyle;c.lineWidth=7;c.lineJoin='round';c.font=`800 ${o.sz}px ${SANS}`;c.textAlign='center';c.strokeText(o.time,W/2,o.y+o.sz*.28);T(c,o.date,W/2,o.y-o.sz*.62,`500 64px ${SANS}`)}},
+ glass:{n:'Glass',f(c,o){const f=c.fillStyle;c.fillStyle='rgba(255,255,255,.22)';c.font=`800 ${o.sz}px ${SANS}`;c.textAlign='center';c.fillText(o.time,W/2,o.y+o.sz*.28);c.strokeStyle=f;c.lineWidth=4;c.strokeText(o.time,W/2,o.y+o.sz*.28);c.fillStyle=f;T(c,o.date,W/2,o.y-o.sz*.62,`500 64px ${SANS}`)}},
+ neon:{n:'Neon',f(c,o){c.shadowColor=o.col2;c.shadowBlur=60;T(c,o.time,W/2,o.y+o.sz*.28,`${o.wt} ${o.sz}px ${SANS}`);c.shadowBlur=20;T(c,o.time,W/2,o.y+o.sz*.28,`${o.wt} ${o.sz}px ${SANS}`);c.shadowBlur=0;T(c,o.date,W/2,o.y-o.sz*.62,`500 64px ${SANS}`)}},
+ serif:{n:'Serif',f(c,o){T(c,o.date,W/2,o.y-o.sz*.62,`italic 400 70px ${SERIF}`);T(c,o.time,W/2,o.y+o.sz*.28,`400 ${o.sz}px ${SERIF}`)}},
+ retro:{n:'Retro mono',f(c,o){const s=o.sz*.82;T(c,o.date,W/2,o.y-s*.72,`500 56px ${MONO}`);T(c,o.time,W/2,o.y+s*.28,`700 ${s}px ${MONO}`)}},
+ grad:{n:'Gradient',f(c,o){const g=c.createLinearGradient(0,o.y-o.sz*.6,0,o.y+o.sz*.4);g.addColorStop(0,o.col);g.addColorStop(1,o.col2);c.fillStyle=g;T(c,o.date,W/2,o.y-o.sz*.62,`500 64px ${SANS}`);T(c,o.time,W/2,o.y+o.sz*.28,`800 ${o.sz}px ${SANS}`)}},
+ left:{n:'Left aligned',f(c,o){const s=o.sz*.8;T(c,o.time,90,o.y+s*.28,`200 ${s}px ${SANS}`,'left');c.fillRect(96,o.y+s*.28+30,120,8);T(c,o.date,96,o.y+s*.28+120,`500 60px ${SANS}`,'left')}},
+ analog:{n:'Analog',f(c,o){const p=parts(),r=o.sz*.62,x=W/2,y=o.y;c.strokeStyle=c.fillStyle;c.lineCap='round';c.lineWidth=8;c.beginPath();c.arc(x,y,r,0,7);c.stroke();
+  for(let i=0;i<12;i++){const a=i*Math.PI/6,d=i%3?.92:.85;c.lineWidth=i%3?5:10;c.beginPath();c.moveTo(x+Math.sin(a)*r*d,y-Math.cos(a)*r*d);c.lineTo(x+Math.sin(a)*r*.96,y-Math.cos(a)*r*.96);c.stroke()}
+  const hand=(a,l,w)=>{c.lineWidth=w;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.sin(a)*r*l,y-Math.cos(a)*r*l);c.stroke()};
+  hand(((p.h%12)+p.m/60)*Math.PI/6,.5,16);hand(p.m*Math.PI/30,.78,10);c.beginPath();c.arc(x,y,16,0,7);c.fill();
+  T(c,o.date,W/2,y+r+110,`500 64px ${SANS}`)}}
+};
+function drawClock(c){
+  const o={time:$('time').value,date:$('date').value,sz:+$('size').value,y:H*$('ypos').value/100,wt:$('wt').value,col:$('col').value,col2:$('col2').value};
+  c.save();c.globalAlpha=+$('op').value;c.fillStyle=o.col;STYLES[style].f(c,o);c.restore();
+}
+function drawDefault(c){
+  let g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1b1464');g.addColorStop(.45,'#7b2ff7');g.addColorStop(.7,'#ff6a95');g.addColorStop(1,'#ffb36b');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+  const s=c.createRadialGradient(W/2,H*.62,0,W/2,H*.62,520);s.addColorStop(0,'rgba(255,240,200,.95)');s.addColorStop(1,'rgba(255,200,150,0)');c.fillStyle=s;c.fillRect(0,0,W,H);
+  [['#4a1d7a',.68,.12],['#2f1458',.75,.16],['#1a0b36',.84,.2]].forEach(([col,y0,a],i)=>{
+    c.fillStyle=col;c.beginPath();c.moveTo(0,H);
+    for(let x=0;x<=W;x+=20)c.lineTo(x,H*y0-Math.abs(Math.sin(x/(170+i*70)+i*2))*H*a*.5-Math.sin(x/60+i)*20);
+    c.lineTo(W,H);c.fill()});
+}
+const clk=mk(),cctx=clk.getContext('2d');
+function drawClockAtmo(){
+  if(!$('atmoOn').checked){drawClock(ctx);return}
+  const k=+$('atmo').value/100,y=H*$('ypos').value/100,sz=+$('size').value;
+  cctx.clearRect(0,0,W,H);drawClock(cctx);
+  ctx.save();ctx.filter=`blur(${10+50*k}px)`;ctx.globalAlpha=.55*k+.15;ctx.drawImage(clk,0,0);ctx.restore();
+  ctx.save();ctx.shadowColor=`rgba(0,0,0,${.4*k})`;ctx.shadowBlur=50*k;ctx.shadowOffsetY=24*k;ctx.drawImage(clk,0,0);ctx.restore();
+  const g=ctx.createLinearGradient(0,y-sz*.2,0,y+sz*1.2);
+  g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,`rgba(255,255,255,${.22*k})`);g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,y-sz*.2,W,sz*1.4);
+}
+function render(){
+  if(L.bg.img)drawLayer(ctx,'bg');else drawDefault(ctx);
+  drawClockAtmo();
+  if(L.fg.img){
+    tctx.globalCompositeOperation='source-over';tctx.clearRect(0,0,W,H);drawLayer(tctx,'fg');
+    tctx.globalCompositeOperation='destination-out';tctx.filter=`blur(${$('feather').value}px)`;tctx.drawImage(hole,0,0);tctx.filter='none';
+    tctx.globalCompositeOperation='source-over';ctx.drawImage(tmp,0,0);
+  }
+}
+/* input */
+function pos(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+function stroke(a,b){
+  hctx.globalCompositeOperation=mode==='erase'?'source-over':'destination-out';
+  hctx.strokeStyle='#fff';hctx.lineCap=hctx.lineJoin='round';hctx.lineWidth=+$('brush').value*2;
+  hctx.beginPath();hctx.moveTo(a.x,a.y);hctx.lineTo(b.x+.01,b.y);hctx.stroke();
+}
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);last=pos(e);if(mode==='erase'||mode==='restore'){stroke(last,last);render()}});
+cv.addEventListener('pointermove',e=>{if(!last)return;const p=pos(e);
+  if(mode==='bg'||mode==='fg'){const l=L[mode];l.cx+=p.x-last.x;l.cy+=p.y-last.y}else stroke(last,p);
+  last=p;render()});
+['pointerup','pointercancel'].forEach(n=>cv.addEventListener(n,()=>last=null));
+const setMode=m=>{mode=m;document.querySelectorAll('#modes button').forEach(x=>x.classList.toggle('on',x.dataset.m===m));$('restore').classList.toggle('on',m==='restore')};
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+$('restore').onclick=()=>setMode('restore');
+function load(k,id){$(id).onchange=e=>{const f=e.target.files[0];if(!f)return;const i=new Image();
+  i.onload=()=>{L[k].img=i;L[k].cx=W/2;L[k].cy=H/2;if(k==='fg'){hctx.clearRect(0,0,W,H);setMode('fg')}render()};i.src=URL.createObjectURL(f)}}
+load('bg','fb');load('fg','ff');
+$('styles').innerHTML=Object.keys(STYLES).map(k=>`<button data-s="${k}" class="${k===style?'on':''}">${STYLES[k].n}</button>`).join('');
+document.querySelectorAll('#styles button').forEach(b=>b.onclick=()=>{style=b.dataset.s;document.querySelectorAll('#styles button').forEach(x=>x.classList.toggle('on',x===b));render()});
+document.querySelectorAll('input[type=range],input[type=text],input[type=color],input[type=checkbox]').forEach(el=>el.addEventListener('input',render));
+$('now').onclick=()=>{const d=new Date();$('time').value=d.getHours()%12||12;$('time').value+=':'+String(d.getMinutes()).padStart(2,'0');
+  $('date').value=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});render()};
+$('exp').onclick=()=>{render();$('out').src=cv.toDataURL('image/png');$('modal').style.display='flex'};
+$('close').onclick=()=>$('modal').style.display='none';
+if(window.Android){$('ab').style.display='flex';$('modal').querySelector('p').style.display='none';
+ const jp=()=>cv.toDataURL('image/jpeg',.95);
+ $('sv').onclick=()=>Android.saveImage(jp());$('sl').onclick=()=>Android.setWallpaper(jp(),2);$('sh').onclick=()=>Android.setWallpaper(jp(),1)}
+render();
+</script></body></html>

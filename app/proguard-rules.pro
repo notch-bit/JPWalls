@@ -1,0 +1,2 @@
+-keepattributes JavascriptInterface
+-keepclassmembers class com.jpwalls.MainActivity$Bridge { @android.webkit.JavascriptInterface <methods>; }
