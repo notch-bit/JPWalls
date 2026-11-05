@@ -29,13 +29,30 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:60
 input[type=file]{display:none}
 .tip{font-size:12px;color:var(--mu)}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:16px;z-index:5}
-#modal img{max-height:78vh;max-width:100%;border-radius:12px}
-#modal p{color:#fff;text-align:center;margin:0}
+#modal,#sd{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column;justify-content:safe center;gap:10px;padding:16px;z-index:5;overflow:auto}
+#modal img,#sd img{max-height:44vh;max-width:100%;border-radius:12px}
+#modal p,#sd p{color:#fff;text-align:center;margin:0}
 #welcome{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
 #welcome .box{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:20px;max-width:340px;display:grid;gap:14px;text-align:center}
 #welcome h3{margin:0;font-size:18px}#welcome p{margin:0}
+[hidden]{display:none!important}
+body{padding-bottom:76px}
+#tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);z-index:4;padding-bottom:env(safe-area-inset-bottom,0px)}
+#tabs button{flex:1;border:0;border-radius:0;background:transparent;padding:10px 4px;color:var(--mu);font-weight:600;font-size:12px;display:grid;gap:2px;justify-items:center}
+#tabs button .ic{font-size:20px;line-height:1}
+#tabs button.on{background:transparent;color:var(--ac)}
+.page{max-width:960px;margin:0 auto;padding:16px;display:grid;gap:14px}
+#sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+#sg .th{border-radius:14px;overflow:hidden;border:1px solid var(--bd);background:#000;cursor:pointer;aspect-ratio:9/20}
+#sg .th img{width:100%;height:100%;object-fit:cover;display:block}
+#sd{overflow:auto;z-index:6}#sd .row{width:100%;max-width:420px}
+.about{text-align:center;padding:28px 18px;gap:10px}
+.about .logo{width:84px;height:84px;border-radius:22px;background:#fff;margin:0 auto;display:grid;place-items:center;border:1px solid var(--bd)}
+.about .logo i{width:30px;height:30px;border-radius:50%;background:#000;display:block}
+.about h1{font-size:26px}.about .tag{font-size:16px;color:var(--ac);font-weight:600;margin:0}
+.about ul{text-align:left;margin:6px auto 0;padding-left:20px;max-width:360px;color:var(--mu);font-size:14px}
 </style></head><body>
+<div id="tab-edit">
 <div class="wrap">
 <div class="card" style="align-content:start">
  <div><h1>JPWalls</h1><p class="s">Background → clock → foreground.</p></div>
@@ -70,8 +87,37 @@ input[type=file]{display:none}
 </div>
 <div class="stage"><canvas id="c" width="1080" height="2400"></canvas></div>
 </div>
+</div>
+<div id="tab-saved" class="page" hidden>
+ <div><h1>Saved</h1><p class="s">Your favourite wallpapers. Tap one to use it.</p></div>
+ <div id="sg"></div>
+ <p class="tip" id="sempty" style="text-align:center;padding:30px 0">Nothing saved yet. Make a wallpaper, tap Export, then “Save to favourites”.</p>
+</div>
+<div id="tab-about" class="page" hidden>
+ <div class="card about">
+  <div class="logo"><i></i></div>
+  <h1>JPWalls</h1>
+  <p class="tag" id="tagline">Your wallpaper, alive with every minute.</p>
+  <p class="s">Layer a background, a live clock and a cut-out foreground into a wallpaper that tells the time by itself.</p>
+  <ul>
+   <li>10 clock styles with depth and glow</li>
+   <li>Live wallpaper: time, date and day update automatically</li>
+   <li>Set for home screen, lock screen or both</li>
+   <li>Use the app PHOTOLAYERS to separate background and upper image</li>
+  </ul>
+  <p class="tip">Version 1.0</p>
+ </div>
+</div>
+<nav id="tabs">
+ <button data-t="edit" class="on"><span class="ic">🎨</span>Edit wallpaper</button>
+ <button data-t="saved"><span class="ic">♥</span>Saved</button>
+ <button data-t="about"><span class="ic">ⓘ</span>About</button>
+</nav>
 <div id="welcome"><div class="box"><h3>Welcome to JPWalls</h3><p>Use the app <b>PHOTOLAYERS</b> to separate background and upper image.</p><button class="pri" id="wok">Got it</button></div></div>
-<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row" id="ab" style="display:none"><button id="sv">Save to gallery</button><button id="sl" class="pri">Set lock screen</button><button id="sh">Set home screen</button><button id="sb" class="pri" style="flex-basis:100%">Add to both home &amp; lock screen</button><button id="lv" class="pri" style="flex-basis:100%">Set as live wallpaper (auto time &amp; date)</button></div><button id="close">Close</button></div>
+<div id="sd" style="display:none"><img id="sdimg" alt="Saved wallpaper">
+ <div class="row" id="sab" style="display:none"><button id="s1">Set home screen</button><button id="s2">Set lock screen</button><button id="s3" class="pri" style="flex-basis:100%">Add to both home &amp; lock screen</button><button id="s4" class="pri" style="flex-basis:100%">Set as live wallpaper</button><button id="s5">Save to gallery</button></div>
+ <div class="row"><a id="sdl" class="btn" download="jpwalls.png" style="display:none">Download</a><button id="s6">Delete</button><button id="s7">Close</button></div></div>
+<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row"><button id="fav">♥ Save to favourites</button></div><div class="row" id="ab" style="display:none"><button id="sv">Save to gallery</button><button id="sl" class="pri">Set lock screen</button><button id="sh">Set home screen</button><button id="sb" class="pri" style="flex-basis:100%">Add to both home &amp; lock screen</button><button id="lv" class="pri" style="flex-basis:100%">Set as live wallpaper (auto time &amp; date)</button></div><button id="close">Close</button></div>
 <script>
 const W=1080,H=2400,$=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
@@ -175,14 +221,45 @@ $('now').onclick=()=>{const d=new Date();$('time').value=d.getHours()%12||12;$('
   $('date').value=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});render()};
 $('exp').onclick=()=>{render();$('out').src=cv.toDataURL('image/png');$('modal').style.display='flex'};
 $('close').onclick=()=>$('modal').style.display='none';
+function layers(){
+  const b=mk(),bx=b.getContext('2d');if(L.bg.img)drawLayer(bx,'bg');else drawDefault(bx);
+  let f='';if(L.fg.img){const t=mk(),tc=t.getContext('2d');drawLayer(tc,'fg');tc.globalCompositeOperation='destination-out';tc.filter=`blur(${$('feather').value}px)`;tc.drawImage(hole,0,0);f=t.toDataURL('image/png')}
+  return{bg:b.toDataURL('image/jpeg',.92),fg:f}}
+function cfgJson(){return JSON.stringify({style,size:+$('size').value,ypos:+$('ypos').value,wt:+$('wt').value,col:$('col').value,col2:$('col2').value,op:+$('op').value,atmoOn:$('atmoOn').checked,atmo:+$('atmo').value})}
 if(window.Android){$('ab').style.display='flex';$('modal').querySelector('p').style.display='none';
  const jp=()=>cv.toDataURL('image/jpeg',.95);
  $('sv').onclick=()=>Android.saveImage(jp());$('sl').onclick=()=>Android.setWallpaper(jp(),2);$('sh').onclick=()=>Android.setWallpaper(jp(),1);$('sb').onclick=()=>Android.setWallpaper(jp(),3);
  $('lv').onclick=()=>{
-  const bc=mk(),bx=bc.getContext('2d');if(L.bg.img)drawLayer(bx,'bg');else drawDefault(bx);
-  let f='';if(L.fg.img){const t=mk(),tc=t.getContext('2d');drawLayer(tc,'fg');tc.globalCompositeOperation='destination-out';tc.filter=`blur(${$('feather').value}px)`;tc.drawImage(hole,0,0);f=t.toDataURL('image/png')}
-  const cfg={style,size:+$('size').value,ypos:+$('ypos').value,wt:+$('wt').value,col:$('col').value,col2:$('col2').value,op:+$('op').value,atmoOn:$('atmoOn').checked,atmo:+$('atmo').value};
-  Android.setLiveWallpaper(bc.toDataURL('image/jpeg',.92),f,JSON.stringify(cfg))}}
+  const d=layers();
+  Android.setLiveWallpaper(d.bg,d.fg,cfgJson())}}
+/* tabs */
+function showTab(t){['edit','saved','about'].forEach(x=>{$('tab-'+x).hidden=x!==t;document.querySelector('#tabs button[data-t="'+x+'"]').classList.toggle('on',x===t)});if(t==='saved')renderSaved();window.scrollTo(0,0)}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
+/* favourites (IndexedDB) */
+const DB=()=>new Promise((res,rej)=>{const r=indexedDB.open('jpwalls',1);r.onupgradeneeded=()=>r.result.createObjectStore('fav',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const store=async m=>(await DB()).transaction('fav',m).objectStore('fav');
+const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const favAll=async()=>(await rq((await store('readonly')).getAll())).sort((a,b)=>b.id-a.id);
+const favPut=async o=>rq((await store('readwrite')).put(o));
+const favDel=async id=>rq((await store('readwrite')).delete(id));
+$('fav').onclick=async()=>{
+  try{const t=mk();t.width=270;t.height=600;t.getContext('2d').drawImage(cv,0,0,270,600);
+   const d=layers();
+   await favPut({id:Date.now(),thumb:t.toDataURL('image/jpeg',.8),img:cv.toDataURL('image/jpeg',.92),bg:d.bg,fg:d.fg,cfg:cfgJson()});
+   $('fav').textContent='♥ Saved to favourites';setTimeout(()=>$('fav').textContent='♥ Save to favourites',1800)}
+  catch(e){$('fav').textContent='Could not save';setTimeout(()=>$('fav').textContent='♥ Save to favourites',1800)}};
+async function renderSaved(){
+  let a=[];try{a=await favAll()}catch(e){}
+  $('sempty').style.display=a.length?'none':'block';
+  $('sg').innerHTML=a.map(o=>'<div class="th" data-id="'+o.id+'"><img src="'+o.thumb+'" alt=""></div>').join('');
+  $('sg').querySelectorAll('.th').forEach(el=>el.onclick=()=>openSaved(a.find(o=>String(o.id)===el.dataset.id)))}
+function openSaved(o){
+  $('sdimg').src=o.img;$('sd').style.display='flex';
+  const A=window.Android;$('sab').style.display=A?'flex':'none';$('sdl').style.display=A?'none':'';$('sdl').href=o.img;
+  if(A){$('s1').onclick=()=>A.setWallpaper(o.img,1);$('s2').onclick=()=>A.setWallpaper(o.img,2);$('s3').onclick=()=>A.setWallpaper(o.img,3);
+   $('s4').onclick=()=>A.setLiveWallpaper(o.bg,o.fg,o.cfg);$('s5').onclick=()=>A.saveImage(o.img)}
+  $('s6').onclick=async()=>{await favDel(o.id);$('sd').style.display='none';renderSaved()};
+  $('s7').onclick=()=>$('sd').style.display='none'}
 try{if(!localStorage.getItem('jpw_seen'))$('welcome').style.display='flex'}catch(e){$('welcome').style.display='flex'}
 $('wok').onclick=()=>{$('welcome').style.display='none';try{localStorage.setItem('jpw_seen','1')}catch(e){}};
 render();
