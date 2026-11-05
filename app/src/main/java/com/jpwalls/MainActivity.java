@@ -86,7 +86,7 @@ public class MainActivity extends Activity {
         }
 
         // Saves the layers + clock settings, then opens the system live-wallpaper preview.
-        @JavascriptInterface public void setLiveWallpaper(String bg, String fg, String cfg) {
+        @JavascriptInterface public void setLiveWallpaper(String bg, String fg, String cfg, String target) {
             try {
                 File dir = getFilesDir();
                 writeData(bg, new File(dir, LiveWallpaperService.BG));
@@ -96,6 +96,10 @@ public class MainActivity extends Activity {
                     o.write(cfg.getBytes("UTF-8"));
                 }
             } catch (Exception e) { toast("Could not save live wallpaper"); return; }
+            final String hint = "home".equals(target) ? "Tap Set wallpaper, then choose Home screen"
+                    : "lock".equals(target) ? "Tap Set wallpaper, then choose Lock screen"
+                    : "Tap Set wallpaper, then choose Home and lock screen";
+            runOnUiThread(() -> Toast.makeText(MainActivity.this, hint, Toast.LENGTH_LONG).show());
             try {
                 Intent i = new Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
                 i.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,

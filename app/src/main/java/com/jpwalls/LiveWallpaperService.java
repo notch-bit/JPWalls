@@ -10,6 +10,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.service.wallpaper.WallpaperService;
 import android.text.format.DateFormat;
 import android.view.SurfaceHolder;
@@ -31,6 +33,16 @@ public class LiveWallpaperService extends WallpaperService {
         private boolean visible;
         private int w = 1, h = 1;
 
+        private final Handler handler = new Handler(Looper.getMainLooper());
+        private final Runnable ticker = new Runnable() {
+            @Override public void run() { draw(); schedule(); }
+        };
+
+        private void schedule() {
+            handler.removeCallbacks(ticker);
+            if (visible) handler.postDelayed(ticker, 60000 - (System.currentTimeMillis() % 60000) + 100);
+        }
+
         private final BroadcastReceiver tick = new BroadcastReceiver() {
             @Override public void onReceive(Context c, Intent i) { draw(); }
         };
@@ -42,16 +54,17 @@ public class LiveWallpaperService extends WallpaperService {
             f.addAction(Intent.ACTION_TIME_CHANGED);
             f.addAction(Intent.ACTION_TIMEZONE_CHANGED);
             f.addAction(Intent.ACTION_DATE_CHANGED);
-            if (Build.VERSION.SDK_INT >= 33) registerReceiver(tick, f, Context.RECEIVER_NOT_EXPORTED);
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(tick, f, Context.RECEIVER_EXPORTED);
             else registerReceiver(tick, f);
         }
 
         @Override public void onDestroy() {
+            handler.removeCallbacks(ticker);
             try { unregisterReceiver(tick); } catch (Exception ignored) {}
             super.onDestroy();
         }
 
-        @Override public void onVisibilityChanged(boolean v) { visible = v; if (v) draw(); }
+        @Override public void onVisibilityChanged(boolean v) { visible = v; if (v) { draw(); schedule(); } else handler.removeCallbacks(ticker); }
 
         @Override public void onSurfaceChanged(SurfaceHolder sh, int fmt, int width, int height) {
             super.onSurfaceChanged(sh, fmt, width, height);

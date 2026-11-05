@@ -51,6 +51,12 @@ body{padding-bottom:76px}
 .about .logo i{width:30px;height:30px;border-radius:50%;background:#000;display:block}
 .about h1{font-size:26px}.about .tag{font-size:16px;color:var(--ac);font-weight:600;margin:0}
 .about ul{text-align:left;margin:6px auto 0;padding-left:20px;max-width:360px;color:var(--mu);font-size:14px}
+.cvw{position:relative;width:min(100%,320px)}
+.cvw canvas{width:100%}
+#heart{position:absolute;top:12px;right:12px;width:46px;height:46px;border-radius:50%;padding:0;background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.35);font-size:24px;line-height:1;backdrop-filter:blur(6px)}
+#heart.on{color:#ff4d6d;background:rgba(0,0,0,.6)}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:20px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20}
+#toast.show{opacity:1}
 </style></head><body>
 <div id="tab-edit">
 <div class="wrap">
@@ -73,6 +79,7 @@ body{padding-bottom:76px}
  <label>Brush edge feather<input type="range" id="feather" min="0" max="12" value="2"></label>
  <h2>3. Clock style</h2>
  <div class="grid" id="styles"></div>
+ <label><span><input type="checkbox" id="liveT" checked> Follow real time (time, date &amp; day update automatically)</span></label>
  <div class="row"><label>Time<input type="text" id="time" value="9:41"></label><label>&nbsp;<button id="now">Use current time</button></label></div>
  <label>Date<input type="text" id="date" value="Wednesday, 4 November"></label>
  <label>Size<input type="range" id="size" min="160" max="700" value="440"></label>
@@ -85,7 +92,8 @@ body{padding-bottom:76px}
  <label>Haze &amp; glow intensity<input type="range" id="atmo" min="0" max="100" value="60"></label>
  <button class="pri" id="exp">Export wallpaper</button>
 </div>
-<div class="stage"><canvas id="c" width="1080" height="2400"></canvas></div>
+<div class="stage"><div class="cvw"><canvas id="c" width="1080" height="2400"></canvas><button id="heart" aria-label="Add to Saved">♡</button></div></div>
+<div id="toast"></div>
 </div>
 </div>
 <div id="tab-saved" class="page" hidden>
@@ -115,9 +123,9 @@ body{padding-bottom:76px}
 </nav>
 <div id="welcome"><div class="box"><h3>Welcome to JPWalls</h3><p>Use the app <b>PHOTOLAYERS</b> to separate background and upper image.</p><button class="pri" id="wok">Got it</button></div></div>
 <div id="sd" style="display:none"><img id="sdimg" alt="Saved wallpaper">
- <div class="row" id="sab" style="display:none"><button id="s1">Set home screen</button><button id="s2">Set lock screen</button><button id="s3" class="pri" style="flex-basis:100%">Add to both home &amp; lock screen</button><button id="s4" class="pri" style="flex-basis:100%">Set as live wallpaper</button><button id="s5">Save to gallery</button></div>
+ <div class="row" id="sab" style="display:none"><button id="s3" class="pri" style="flex-basis:100%">Set as both home &amp; lock screen<br><small>live wallpaper · real time</small></button><button id="s1" style="flex-basis:100%">Set as home screen<br><small>live wallpaper · real time</small></button><button id="s2" style="flex-basis:100%">Set as lock screen<br><small>live wallpaper · real time</small></button></div>
  <div class="row"><a id="sdl" class="btn" download="jpwalls.png" style="display:none">Download</a><button id="s6">Delete</button><button id="s7">Close</button></div></div>
-<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row"><button id="fav">♥ Save to favourites</button></div><div class="row" id="ab" style="display:none"><button id="sv">Save to gallery</button><button id="sl" class="pri">Set lock screen</button><button id="sh">Set home screen</button><button id="sb" class="pri" style="flex-basis:100%">Add to both home &amp; lock screen</button><button id="lv" class="pri" style="flex-basis:100%">Set as live wallpaper (auto time &amp; date)</button></div><button id="close">Close</button></div>
+<div id="modal"><p>Press and hold the image, then choose “Download image” or “Save image”.</p><img id="out" alt="Wallpaper"><div class="row" id="ab" style="display:none"><button id="lb" class="pri" style="flex-basis:100%">Set as both home &amp; lock screen<br><small>live wallpaper · real time</small></button><button id="lh" style="flex-basis:100%">Set as home screen<br><small>live wallpaper · real time</small></button><button id="ll" style="flex-basis:100%">Set as lock screen<br><small>live wallpaper · real time</small></button></div><button id="close">Close</button></div>
 <script>
 const W=1080,H=2400,$=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
@@ -146,6 +154,18 @@ function parts(){
   const m=$('time').value.match(/(\d+)\D+(\d+)/)||['','9','41'];
   return{h:parseInt(m[1]),m:parseInt(m[2]),hh:String(parseInt(m[1])).padStart(2,'0'),mm:String(parseInt(m[2])).padStart(2,'0')};
 }
+const DG={0:['01110','10001','10011','10101','11001','10001','01110'],1:['00100','01100','00100','00100','00100','00100','01110'],2:['01110','10001','00001','00010','00100','01000','11111'],3:['11110','00001','00001','01110','00001','00001','11110'],4:['00010','00110','01010','10010','11111','00010','00010'],5:['11111','10000','11110','00001','00001','10001','01110'],6:['00110','01000','10000','11110','10001','10001','01110'],7:['11111','00001','00010','00100','01000','01000','01000'],8:['01110','10001','10001','01110','10001','10001','01110'],9:['01110','10001','10001','01111','00001','00010','01100']};
+const RED='#ff2a2a';
+const tw=s=>[...s].reduce((a,ch)=>a+(ch===':'?3:6),-1);
+function dots(c,s,cx,top,cell){
+  let x=cx-tw(s)*cell/2;c.beginPath();
+  for(const ch of s){
+    if(ch===':'){[2.5,4.5].forEach(r=>{const px=x+1.5*cell,py=top+r*cell;c.moveTo(px+cell*.4,py);c.arc(px,py,cell*.4,0,7)});x+=3*cell;continue}
+    DG[ch].forEach((row,ri)=>[...row].forEach((v,ci)=>{if(v==='1'){const px=x+(ci+.5)*cell,py=top+(ri+.5)*cell;c.moveTo(px+cell*.4,py);c.arc(px,py,cell*.4,0,7)}}));
+    x+=6*cell}
+  c.fill()}
+function redDot(c,x,y,r){c.save();c.fillStyle=RED;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.restore()}
+function caps(c,s,x,y,px){c.letterSpacing='7px';T(c,s.toUpperCase(),x,y,`500 ${px}px ${MONO}`);c.letterSpacing='0px'}
 const STYLES={
  ios:{n:'iPhone',f(c,o){T(c,o.date,W/2,o.y-o.sz*.62,`500 64px ${SANS}`);T(c,o.time,W/2,o.y+o.sz*.28,`${o.wt} ${o.sz}px ${SANS}`)}},
  oneui:{n:'One UI',f(c,o){const p=parts(),s=o.sz*.9;T(c,o.date,W/2,o.y-s*.75,`400 58px ${SANS}`);T(c,p.hh,W/2,o.y+s*.12,`300 ${s}px ${SANS}`);T(c,p.mm,W/2,o.y+s*1.08,`300 ${s}px ${SANS}`)}},
@@ -161,7 +181,21 @@ const STYLES={
   for(let i=0;i<12;i++){const a=i*Math.PI/6,d=i%3?.92:.85;c.lineWidth=i%3?5:10;c.beginPath();c.moveTo(x+Math.sin(a)*r*d,y-Math.cos(a)*r*d);c.lineTo(x+Math.sin(a)*r*.96,y-Math.cos(a)*r*.96);c.stroke()}
   const hand=(a,l,w)=>{c.lineWidth=w;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.sin(a)*r*l,y-Math.cos(a)*r*l);c.stroke()};
   hand(((p.h%12)+p.m/60)*Math.PI/6,.5,16);hand(p.m*Math.PI/30,.78,10);c.beginPath();c.arc(x,y,16,0,7);c.fill();
-  T(c,o.date,W/2,y+r+110,`500 64px ${SANS}`)}}
+  T(c,o.date,W/2,y+r+110,`500 64px ${SANS}`)}},
+ ndot:{n:'Nothing dot',f(c,o){const cell=Math.min(o.sz*.075,(W-140)/tw(o.time)),top=o.y-cell*3.5;caps(c,o.date,W/2,top-cell*1.6,44);dots(c,o.time,W/2,top,cell);redDot(c,W/2,top+cell*9.2,cell*.45)}},
+ ndotstack:{n:'Nothing stack',f(c,o){const p=parts(),cell=Math.min(o.sz*.17,(W-160)/11),t1=o.y-cell*5;caps(c,o.date,W/2,t1-cell*1.1,44);dots(c,p.hh,W/2,t1,cell);dots(c,p.mm,W/2,t1+cell*8.6,cell);redDot(c,W/2,t1+cell*17.6,cell*.45)}},
+ nring:{n:'Nothing ring',f(c,o){const p=parts(),r=Math.min(o.sz*.85,W*.42),cell=r*.055,ga=c.globalAlpha;
+  for(let i=0;i<60;i++){const a=i*Math.PI/30,x=W/2+Math.sin(a)*r,y=o.y-Math.cos(a)*r;c.globalAlpha=ga*(i<=p.m?1:.22);
+   if(i===p.m){c.save();c.fillStyle=RED;c.beginPath();c.arc(x,y,13,0,7);c.fill();c.restore()}else{c.beginPath();c.arc(x,y,i%5===0?10:6,0,7);c.fill()}}
+  c.globalAlpha=ga;dots(c,o.time,W/2,o.y-cell*3.5,cell);caps(c,o.date,W/2,o.y+cell*7.5,38)}},
+ ioslong:{n:'iPhone long',f(c,o){const p=parts(),s=o.sz*.82,cap=.72*s*1.95,b1=o.y+cap/2;T(c,o.date,W/2,b1-cap-50,`500 64px ${SANS}`);
+  [[p.hh,b1],[p.mm,b1+cap+60]].forEach(([t,b])=>{c.save();c.translate(W/2,b);c.scale(.85,1.95);T(c,t,0,0,`800 ${s}px ${SANS}`);c.restore()})}},
+ cond:{n:'Tall condensed',f(c,o){const p=parts(),s=o.sz*.95,sy=2.45,sx=.64,cap=.72*s*sy,b=o.y+cap/2,
+  m=o.date.match(/^([A-Za-z]+)\W+(\d+)\s+([A-Za-z]+)/),ds=(m?m[1].slice(0,3)+', '+m[3].slice(0,3)+' '+m[2]:o.date).toUpperCase();
+  c.save();c.translate(W/2,b-cap-46);c.scale(.75,1.2);c.font=`800 56px ${SANS}`;c.textAlign='center';c.strokeStyle=c.fillStyle;c.lineWidth=3;c.fillText(ds,0,0);c.strokeText(ds,0,0);c.restore();
+  c.save();c.translate(W/2,b);c.scale(sx,sy);c.font=`800 ${s}px ${SANS}`;c.textAlign='center';c.strokeStyle=c.fillStyle;c.lineWidth=7;c.lineJoin='round';
+  const t=p.hh+':'+p.mm;c.fillText(t,0,0);c.strokeText(t,0,0);c.restore()}},
+ iosline:{n:'iPhone long line',f(c,o){const s=o.sz*.9,cap=.72*s*2.2,b=o.y+cap/2;T(c,o.date,W/2,b-cap-40,`500 64px ${SANS}`);c.save();c.translate(W/2,b);c.scale(.8,2.2);T(c,o.time,0,0,`700 ${s}px ${SANS}`);c.restore()}}
 };
 function drawClock(c){
   const o={time:$('time').value,date:$('date').value,sz:+$('size').value,y:H*$('ypos').value/100,wt:$('wt').value,col:$('col').value,col2:$('col2').value};
@@ -217,8 +251,13 @@ load('bg','fb');load('fg','ff');
 $('styles').innerHTML=Object.keys(STYLES).map(k=>`<button data-s="${k}" class="${k===style?'on':''}">${STYLES[k].n}</button>`).join('');
 document.querySelectorAll('#styles button').forEach(b=>b.onclick=()=>{style=b.dataset.s;document.querySelectorAll('#styles button').forEach(x=>x.classList.toggle('on',x===b));render()});
 document.querySelectorAll('input[type=range],input[type=text],input[type=color],input[type=checkbox]').forEach(el=>el.addEventListener('input',render));
-$('now').onclick=()=>{const d=new Date();$('time').value=d.getHours()%12||12;$('time').value+=':'+String(d.getMinutes()).padStart(2,'0');
-  $('date').value=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});render()};
+function syncNow(){const d=new Date(),t=(d.getHours()%12||12)+':'+String(d.getMinutes()).padStart(2,'0'),
+  dt=d.toLocaleDateString('en-US',{weekday:'long'})+', '+d.getDate()+' '+d.toLocaleDateString('en-US',{month:'long'});
+  if($('time').value===t&&$('date').value===dt)return false;$('time').value=t;$('date').value=dt;return true}
+$('now').onclick=()=>{$('liveT').checked=true;syncNow();render()};
+['time','date'].forEach(id=>$(id).addEventListener('input',()=>{$('liveT').checked=false}));
+$('liveT').addEventListener('change',()=>{if($('liveT').checked){syncNow();render()}});
+setInterval(()=>{if($('liveT').checked&&syncNow())render()},2000);
 $('exp').onclick=()=>{render();$('out').src=cv.toDataURL('image/png');$('modal').style.display='flex'};
 $('close').onclick=()=>$('modal').style.display='none';
 function layers(){
@@ -228,10 +267,8 @@ function layers(){
 function cfgJson(){return JSON.stringify({style,size:+$('size').value,ypos:+$('ypos').value,wt:+$('wt').value,col:$('col').value,col2:$('col2').value,op:+$('op').value,atmoOn:$('atmoOn').checked,atmo:+$('atmo').value})}
 if(window.Android){$('ab').style.display='flex';$('modal').querySelector('p').style.display='none';
  const jp=()=>cv.toDataURL('image/jpeg',.95);
- $('sv').onclick=()=>Android.saveImage(jp());$('sl').onclick=()=>Android.setWallpaper(jp(),2);$('sh').onclick=()=>Android.setWallpaper(jp(),1);$('sb').onclick=()=>Android.setWallpaper(jp(),3);
- $('lv').onclick=()=>{
-  const d=layers();
-  Android.setLiveWallpaper(d.bg,d.fg,cfgJson())}}
+ const live=t=>()=>{const d=layers();Android.setLiveWallpaper(d.bg,d.fg,cfgJson(),t)};
+ $('lb').onclick=live('both');$('lh').onclick=live('home');$('ll').onclick=live('lock')}
 /* tabs */
 function showTab(t){['edit','saved','about'].forEach(x=>{$('tab-'+x).hidden=x!==t;document.querySelector('#tabs button[data-t="'+x+'"]').classList.toggle('on',x===t)});if(t==='saved')renderSaved();window.scrollTo(0,0)}
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
@@ -242,12 +279,14 @@ const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>
 const favAll=async()=>(await rq((await store('readonly')).getAll())).sort((a,b)=>b.id-a.id);
 const favPut=async o=>rq((await store('readwrite')).put(o));
 const favDel=async id=>rq((await store('readwrite')).delete(id));
-$('fav').onclick=async()=>{
-  try{const t=mk();t.width=270;t.height=600;t.getContext('2d').drawImage(cv,0,0,270,600);
-   const d=layers();
-   await favPut({id:Date.now(),thumb:t.toDataURL('image/jpeg',.8),img:cv.toDataURL('image/jpeg',.92),bg:d.bg,fg:d.fg,cfg:cfgJson()});
-   $('fav').textContent='♥ Saved to favourites';setTimeout(()=>$('fav').textContent='♥ Save to favourites',1800)}
-  catch(e){$('fav').textContent='Could not save';setTimeout(()=>$('fav').textContent='♥ Save to favourites',1800)}};
+async function saveFav(){
+  const t=mk();t.width=270;t.height=600;t.getContext('2d').drawImage(cv,0,0,270,600);
+  const d=layers();
+  await favPut({id:Date.now(),thumb:t.toDataURL('image/jpeg',.8),img:cv.toDataURL('image/jpeg',.92),bg:d.bg,fg:d.fg,cfg:cfgJson()})}
+function toast(m){const e=$('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1800)}
+$('heart').onclick=async()=>{
+  try{render();await saveFav();$('heart').textContent='♥';$('heart').classList.add('on');toast('Added to Saved')}catch(e){toast('Could not save')}
+  setTimeout(()=>{$('heart').textContent='♡';$('heart').classList.remove('on')},1500)};
 async function renderSaved(){
   let a=[];try{a=await favAll()}catch(e){}
   $('sempty').style.display=a.length?'none':'block';
@@ -256,11 +295,10 @@ async function renderSaved(){
 function openSaved(o){
   $('sdimg').src=o.img;$('sd').style.display='flex';
   const A=window.Android;$('sab').style.display=A?'flex':'none';$('sdl').style.display=A?'none':'';$('sdl').href=o.img;
-  if(A){$('s1').onclick=()=>A.setWallpaper(o.img,1);$('s2').onclick=()=>A.setWallpaper(o.img,2);$('s3').onclick=()=>A.setWallpaper(o.img,3);
-   $('s4').onclick=()=>A.setLiveWallpaper(o.bg,o.fg,o.cfg);$('s5').onclick=()=>A.saveImage(o.img)}
+  if(A){$('s3').onclick=()=>A.setLiveWallpaper(o.bg,o.fg,o.cfg,'both');$('s1').onclick=()=>A.setLiveWallpaper(o.bg,o.fg,o.cfg,'home');$('s2').onclick=()=>A.setLiveWallpaper(o.bg,o.fg,o.cfg,'lock')}
   $('s6').onclick=async()=>{await favDel(o.id);$('sd').style.display='none';renderSaved()};
   $('s7').onclick=()=>$('sd').style.display='none'}
 try{if(!localStorage.getItem('jpw_seen'))$('welcome').style.display='flex'}catch(e){$('welcome').style.display='flex'}
 $('wok').onclick=()=>{$('welcome').style.display='none';try{localStorage.setItem('jpw_seen','1')}catch(e){}};
-render();
+syncNow();render();
 </script></body></html>
