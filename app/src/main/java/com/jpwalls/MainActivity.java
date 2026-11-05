@@ -13,6 +13,12 @@ import android.provider.MediaStore;
 import android.util.Base64;
 import android.webkit.*;
 import android.widget.Toast;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation;
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmenter;
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions;
+import java.io.ByteArrayOutputStream;
+import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -65,7 +71,38 @@ public class MainActivity extends Activity {
         return BitmapFactory.decodeByteArray(b, 0, b.length);
     }
 
+    /** Sends the cut-out PNG (or null on failure) back to the editor page. */
+    private void cutoutDone(final String dataUrl) {
+        final String arg = dataUrl == null ? "null" : JSONObject.quote(dataUrl);
+        runOnUiThread(() -> web.evaluateJavascript("window.onCutout(" + arg + ")", null));
+    }
+
     class Bridge {
+        // Finds the main subject of the (already positioned) foreground photo with Google ML Kit.
+        // The result is a transparent-background PNG the editor turns into the eraser mask.
+        @JavascriptInterface public void autoCutout(final String data) {
+            new Thread(() -> {
+                try {
+                    Bitmap src = bmp(data);
+                    final Bitmap in = Bitmap.createScaledBitmap(src, 720, 1600, true);
+                    final SubjectSegmenter seg = SubjectSegmentation.getClient(
+                            new SubjectSegmenterOptions.Builder().enableForegroundBitmap().build());
+                    seg.process(InputImage.fromBitmap(in, 0))
+                            .addOnSuccessListener(r -> new Thread(() -> {
+                                try {
+                                    Bitmap fgb = r.getForegroundBitmap();
+                                    if (fgb == null) { cutoutDone(null); return; }
+                                    ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                                    fgb.compress(Bitmap.CompressFormat.PNG, 100, bo);
+                                    cutoutDone("data:image/png;base64," + Base64.encodeToString(bo.toByteArray(), Base64.NO_WRAP));
+                                } catch (Throwable t) { cutoutDone(null); }
+                            }).start())
+                            .addOnFailureListener(e -> cutoutDone(null))
+                            .addOnCompleteListener(t -> seg.close());
+                } catch (Throwable t) { cutoutDone(null); }
+            }).start();
+        }
+
         @JavascriptInterface public void saveImage(String d) {
             try {
                 ContentValues v = new ContentValues();

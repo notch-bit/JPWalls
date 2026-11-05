@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import java.text.SimpleDateFormat;
@@ -21,18 +22,34 @@ class ClockRenderer {
 
     static class Opt {
         String time, date, dshort, hh, mm;
-        int h, m;
+        int h, m, hr;
         float sz, y;
         int wt, col, col2;
     }
 
     private final String style;
-    private final float size, ypos, op, atmo;
+    private final float size, ypos, op, atmo, xpos, rot;
+    /** true = clock is drawn in front of the subject cut-out. */
+    final boolean front;
+    /** depth-motion strength 0..100 (0 = off). */
+    final float par;
+    private final Typeface sansFace;
     private final int wt, col, col2;
     private final boolean atmoOn;
 
-    ClockRenderer(JSONObject j) {
+    private final Typeface lg;
+
+    ClockRenderer(JSONObject j, Typeface font) {
+        lg = font != null ? font : Typeface.create("sans-serif-condensed", Typeface.BOLD);
         style = j.optString("style", "ios");
+        xpos = (float) j.optDouble("xpos", 0);
+        rot = (float) j.optDouble("rot", 0);
+        front = j.optBoolean("front", false);
+        par = (float) j.optDouble("par", 0);
+        String fam = j.optString("font", "sans");
+        sansFace = "serif".equals(fam) ? Typeface.SERIF
+                : "mono".equals(fam) ? Typeface.MONOSPACE
+                : "cond".equals(fam) ? lg : Typeface.DEFAULT;
         size = (float) j.optDouble("size", 440);
         ypos = (float) j.optDouble("ypos", 26);
         wt = j.optInt("wt", 600);
@@ -56,6 +73,7 @@ class ClockRenderer {
         o.h = cal.get(Calendar.HOUR_OF_DAY);
         o.m = cal.get(Calendar.MINUTE);
         int hr = is24h ? o.h : (o.h % 12 == 0 ? 12 : o.h % 12);
+        o.hr = hr;
         o.hh = String.format(Locale.US, "%02d", hr);
         o.mm = String.format(Locale.US, "%02d", o.m);
         o.time = is24h ? o.hh + ":" + o.mm : hr + ":" + o.mm;
@@ -89,6 +107,9 @@ class ClockRenderer {
     private void pass(Canvas c, Opt o, Pen pen) {
         c.save();
         c.translate(0, pen.dy);
+        c.translate(W / 2f + xpos, o.y);
+        c.rotate(rot);
+        c.translate(-W / 2f, -o.y);
         drawStyle(c, o, pen);
         c.restore();
     }
@@ -168,8 +189,26 @@ class ClockRenderer {
         c.restore();
     }
 
+    private static final String[] ONES = {"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+            "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"};
+    private static final String[] TENS = {"", "", "twenty", "thirty", "forty", "fifty"};
+
+    private static String nw(int n) {
+        return n < 20 ? ONES[n] : TENS[n / 10] + (n % 10 == 0 ? "" : "-" + ONES[n % 10]);
+    }
+
+    /** Shrinks the paint's text size so the string fits the design width. */
+    private static void fit(Paint p, String t) {
+        float w = p.measureText(t), max = W - 140f;
+        if (w > max) p.setTextSize(p.getTextSize() * max / w);
+    }
+
+    private static void tint(Paint p, Pen pen, int rgb) {
+        if (!pen.flat) p.setColor((p.getAlpha() << 24) | (rgb & 0xFFFFFF));
+    }
+
     private void drawStyle(Canvas c, Opt o, Pen pen) {
-        final Typeface SANS = Typeface.DEFAULT, SERIF = Typeface.SERIF, MONO = Typeface.MONOSPACE;
+        final Typeface SANS = sansFace, SERIF = Typeface.SERIF, MONO = Typeface.MONOSPACE;
         final Paint.Align C = Paint.Align.CENTER, L = Paint.Align.LEFT;
         final float cx = W / 2f, sz = o.sz, y = o.y;
         switch (style) {
@@ -307,6 +346,100 @@ class ClockRenderer {
                 Paint tp = P(pen, Paint.Style.FILL_AND_STROKE, s, 800, SANS, false, C, 1f, false);
                 tp.setStrokeWidth(7); tp.setStrokeJoin(Paint.Join.ROUND);
                 tall(c, o.hh + ":" + o.mm, cx, b, sx, sy, tp);
+                break;
+            }
+            case "wide": {
+                float s = sz * .62f, ls = s * .12f;
+                Paint p = F(pen, s, 200, SANS, false, C);
+                p.setLetterSpacing(.12f);
+                c.drawText(o.time, cx + ls / 2f, y + s * .36f, p);
+                Paint d = F(pen, 44, 500, SANS, false, C);
+                d.setLetterSpacing(14f / 44f);
+                c.drawText(o.date.toUpperCase(), cx + 7, y - s * .36f - 50, d);
+                break;
+            }
+            case "ext3d": {
+                float s = sz * .85f, by = y + s * .28f;
+                c.drawText(o.date, cx, y - s * .7f, F(pen, 64, 500, SANS, false, C));
+                Paint side = F(pen, s, 800, SANS, false, C);
+                tint(side, pen, o.col2);
+                for (int i = 26; i >= 1; i--) c.drawText(o.time, cx + i * .8f, by + i * .8f, side);
+                c.drawText(o.time, cx, by, F(pen, s, 800, SANS, false, C));
+                break;
+            }
+            case "duo": {
+                float s = sz * .74f, by = y + s * .28f;
+                String a = o.hh + ":", b = o.mm;
+                Paint pa = F(pen, s, o.wt, SANS, false, L);
+                Paint pb = F(pen, s, o.wt, SANS, false, L);
+                tint(pb, pen, o.col2);
+                float wa = pa.measureText(a), wb = pa.measureText(b), x0 = cx - (wa + wb) / 2f;
+                c.drawText(o.date, cx, y - s * .62f, F(pen, 64, 500, SANS, false, C));
+                c.drawText(a, x0, by, pa);
+                c.drawText(b, x0 + wa, by, pb);
+                break;
+            }
+            case "pill": {
+                float s = sz * .62f;
+                Paint t = F(pen, s, o.wt, SANS, false, C);
+                float pw = Math.min(t.measureText(o.time) + s * .9f, W - 120f), ph = s * 1.25f;
+                Paint st = P(pen, Paint.Style.STROKE, 10, 400, SANS, false, C, 1f, false);
+                st.setStrokeWidth(8);
+                c.drawRoundRect(cx - pw / 2f, y - ph / 2f, cx + pw / 2f, y + ph / 2f, ph / 2f, ph / 2f, st);
+                c.drawText(o.time, cx, y + s * .36f, t);
+                c.drawText(o.date, cx, y + ph / 2f + 90, F(pen, 56, 500, SANS, false, C));
+                break;
+            }
+            case "bigback": {
+                float s = sz * 1.3f, s2 = sz * .62f;
+                c.drawText(o.date, cx, y - s * .36f - 50, F(pen, 60, 500, SANS, false, C));
+                c.drawText(o.hh, cx, y + s * .36f, P(pen, Paint.Style.FILL, s, 900, SANS, false, C, .28f, false));
+                c.drawText(o.mm, cx, y + s2 * .36f, F(pen, s2, 800, SANS, false, C));
+                break;
+            }
+            case "sticker": {
+                float s = sz * .85f, by = y + s * .28f;
+                Paint st = P(pen, Paint.Style.STROKE, s, 900, SANS, false, C, 1f, false);
+                st.setStrokeWidth(s * .14f);
+                st.setStrokeJoin(Paint.Join.ROUND);
+                tint(st, pen, o.col2);
+                c.drawText(o.date, cx, y - s * .7f, F(pen, 64, 600, SANS, false, C));
+                c.drawText(o.time, cx, by, st);
+                c.drawText(o.time, cx, by, F(pen, s, 900, SANS, false, C));
+                break;
+            }
+            case "words": {
+                String a = (o.hr == 0 ? "midnight" : nw(o.hr)).toUpperCase(Locale.ENGLISH);
+                String b = (o.m == 0 ? "o'clock" : o.m < 10 ? "oh " + nw(o.m) : nw(o.m)).toUpperCase(Locale.ENGLISH);
+                Paint pa = F(pen, sz * .42f, o.wt, SANS, false, C);
+                Paint pb = F(pen, sz * .42f, o.wt, SANS, false, C);
+                fit(pa, a);
+                fit(pb, b);
+                tint(pb, pen, o.col2);
+                float s1 = pa.getTextSize(), s2 = pb.getTextSize();
+                c.drawText(o.date.toUpperCase(), cx, y - s1 * .72f - 40, F(pen, 52, 500, SANS, false, C));
+                c.drawText(a, cx, y, pa);
+                c.drawText(b, cx, y + Math.max(s1, s2) * .95f, pb);
+                break;
+            }
+            case "studio": {
+                float k = sz / 440f, cap = 732 * k, dcap = 58 * k;
+                Paint tp = P(pen, Paint.Style.FILL, 100, 400, lg, false, C, 1f, false);
+                Rect r = new Rect();
+                tp.getTextBounds("0", 0, 1, r);
+                float ca = r.height() / 100f;
+                tp.setTextSize(cap / ca);
+                tp.getTextBounds("09:55", 0, 5, r);
+                float sx = 1.16f * cap / r.width();
+                c.save();
+                c.translate(cx, y + cap / 2);
+                c.scale(sx, 1);
+                c.drawText(o.hh + ":" + o.mm, 0, 0, tp);
+                c.restore();
+                Paint dp = P(pen, Paint.Style.FILL, dcap / ca, 400, lg, false, C, 1f, true);
+                dp.setLetterSpacing(0.19f * ca);
+                String ds = new SimpleDateFormat("EEE, MMM d", Locale.ENGLISH).format(new Date()).toUpperCase(Locale.ENGLISH);
+                c.drawText(ds, cx, y - cap / 2 - 41 * k, dp);
                 break;
             }
             case "ioslong": {

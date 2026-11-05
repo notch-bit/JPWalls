@@ -13,4 +13,7 @@ android {
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
-// No dependencies on purpose: keeps the APK tiny.
+dependencies {
+    // Auto subject cut-out. "Unbundled" ML Kit: the model lives in Google Play services, so the APK stays small.
+    implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
+}
